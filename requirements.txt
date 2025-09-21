@@ -1,0 +1,26 @@
+# Healthcare Test Case Generator Dependencies
+# Core ADK and Google Cloud dependencies
+google-adk
+google-cloud-storage
+google-cloud-bigquery
+google-genai
+
+# PDF processing
+PyPDF2
+reportlab
+
+# Data processing
+pandas
+jinja2
+
+# Environment management
+python-dotenv
+
+# Jira integration (optional)
+jira
+
+# HTTP requests
+requests
+
+# Logging and utilities
+urllib3
