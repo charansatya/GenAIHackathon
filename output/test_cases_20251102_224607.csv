@@ -1,0 +1,179 @@
+Test Case ID,Title,Priority,Category,Preconditions,Test Steps,Expected Results,Test Data,Compliance Standards,Requirement IDs,Risk Level,Estimated Time
+TC-MED-138-01,Verify Medication Prescribing Safety Check for Drug-Allergy Interaction,critical,compliance,"• A test patient 'John Doe' exists in the system.
+• The patient 'John Doe' has a documented allergy to 'Penicillin'.
+• A user account for 'Dr. Sarah Chen' with prescribing privileges exists.","Step 1: Log in as Dr. Sarah Chen. | Input: User: 'sarah.chen', Password: 'securepassword' | Expected: Dr. Sarah is successfully logged in and sees her dashboard.
+Step 2: Search for and open the chart of the test patient 'John Doe'. | Input: Patient Name: 'John Doe', DOB: '1970-01-01' | Expected: Patient John Doe's chart is opened. The allergy list clearly displays 'Penicillin'.
+Step 3: Navigate to the medication prescribing module and attempt to prescribe 'Amoxicillin' (a penicillin-class antibiotic). | Input: Medication: 'Amoxicillin', Dose: '500mg', Frequency: 'TID' | Expected: A prominent, non-dismissible critical alert appears, stating a severe drug-allergy interaction between Amoxicillin and the patient's Penicillin allergy.
+Step 4: Attempt to override the alert without providing a clinical justification. | Input: Click 'Override' or 'Continue' | Expected: The system prevents the prescription from being finalized. A field requiring clinical justification for the override is displayed and is mandatory.","The system must block the prescription of a medication to which the patient has a known allergy and display a clear, actionable alert.
+Verification Criteria:
+• The drug-allergy alert is displayed.
+• The prescription cannot be signed or sent without a mandatory override justification.
+• The event is logged in the audit trail.","Required Data:
+• Patient: John Doe, DOB: 1970-01-01, Allergy: Penicillin
+• Medication: Amoxicillin
+
+Test Environment: Staging environment with integrated drug database and clinical decision support.
+
+Data Cleanup: Remove the draft prescription from the patient's chart.",,MED-138,medium,20 minutes
+TC-MED-138-02,Verify Audit Trail Completeness for PHI Access by IT Administrator,high,security,"• A test patient 'Jane Smith' exists in the system.
+• A user account for 'Admin John Smith' with administrative privileges to view patient charts exists.","Step 1: Log in as Admin John Smith. | Input: User: 'john.smith', Password: 'adminpassword' | Expected: Admin John is successfully logged in and sees the administrative dashboard.
+Step 2: Using administrative tools, access the chart of patient 'Jane Smith' to simulate a support-related task. Note the exact time of access. | Input: Patient Name: 'Jane Smith', DOB: '1985-05-10', Reason for access: 'Troubleshooting chart display issue.' | Expected: The patient's chart is displayed in a read-only or 'break-the-glass' mode. A record of the access is generated.
+Step 3: Navigate to the system's audit log/trail viewer. | Input: N/A | Expected: The audit log interface is displayed.
+Step 4: Filter the audit log for events related to patient 'Jane Smith' and user 'john.smith' around the time of access. | Input: Filter by Patient ID, User ID, and Timeframe. | Expected: An audit log entry is found that contains all required elements: User ID ('john.smith'), Patient ID ('Jane Smith'), type of action ('Patient Chart View'), timestamp, source IP address, and reason for access ('Troubleshooting chart display issue.').","All administrative access to Protected Health Information (PHI) must be logged in the audit trail with sufficient detail to meet HIPAA requirements.
+Verification Criteria:
+• The audit log entry is created successfully.
+• The entry contains the user, patient, action, timestamp, and reason for access.","Required Data:
+• Patient: Jane Smith, DOB: 1985-05-10
+• Admin User: john.smith
+
+Test Environment: Staging environment with full audit logging enabled.
+
+Data Cleanup: No data cleanup required.",,MED-138,medium,30 minutes
+TC-MED-137-01,End-to-End Critical Lab Alert Workflow Verification,critical,functional,"• A test lab system simulator is available.
+• An ICU patient is configured with Nurse Mary as the assigned nurse and Dr. Sarah as the attending physician.
+• User accounts for all three personas are active.","Step 1: Simulate a critical lab result (e.g., Potassium > 6.0 mEq/L) being sent from a test lab system interface for an ICU patient. | Input: HL7 ORU message with patient MRN, critical lab value, and critical flag. | Expected: The EHR ingests the result. A critical alert is generated and immediately pushed to the assigned ICU nurse, Nurse Mary.
+Step 2: Log in as Nurse Mary. Verify receipt of the critical alert on her mobile device. | Input: User: 'mary.johnson', Password: 'nursepassword' | Expected: Nurse Mary receives a high-priority, audible/vibrating notification within 60 seconds of the lab result being sent. The alert clearly states the patient's name and the critical value.
+Step 3: As Nurse Mary, acknowledge the alert and use the system's communication tool to send a secure message to Dr. Sarah about the critical lab. | Input: Acknowledge alert. Message to Dr. Sarah: 'Critical K+ of 6.2 on John Doe in ICU Bed 4.' | Expected: The alert status updates to 'Acknowledged'. Dr. Sarah receives a high-priority message notification.
+Step 4: Log in as Dr. Sarah. Access the patient's chart directly from the message notification. | Input: User: 'sarah.chen', Password: 'securepassword' | Expected: Dr. Sarah is taken directly to the patient's chart, with the critical lab result highlighted. Chart load time is under 3 seconds.
+Step 5: As Dr. Sarah, place an immediate STAT order for intervention (e.g., Kayexalate) and document the decision in a progress note. | Input: Order: 'Kayexalate 15g PO STAT'. Note: 'Critical hyperkalemia, STAT order placed.' | Expected: The order is placed and immediately appears on Nurse Mary's task list/eMAR. The note is saved.
+Step 6: Log in as Admin John and review the audit trail for the entire workflow. | Input: User: 'john.smith', Password: 'adminpassword' | Expected: The audit trail shows a complete, time-stamped sequence of events: lab result received, alert sent, alert acknowledged by Nurse Mary, message sent, Dr. Sarah's chart access, order placed, and note signed.","The system facilitates a rapid and auditable response to a critical clinical event.
+Verification Criteria:
+• Alert is delivered to the correct user in under 60 seconds.
+• Data is synchronized in real-time across different user sessions.
+• The entire workflow is captured in the audit trail.","Required Data:
+• ICU Patient with MRN
+• Critical Lab Value (Potassium > 6.0 mEq/L)
+
+Test Environment: Integrated test environment including EHR, CPOE, and a simulated LIS (Lab Information System) interface.
+
+Data Cleanup: Cancel the STAT order and delete the progress note.",,MED-137,medium,45 minutes
+TC-MED-137-02,Verify Data Integrity and User Notification During System Maintenance,high,functional,"• User accounts for Dr. Sarah and Admin John are active.
+• Admin John has privileges to schedule and perform system maintenance.","Step 1: As Dr. Sarah, be in the middle of documenting a patient note. Do not sign it. | Input: Patient: 'Jane Smith', Note: 'Patient presents with...', unsaved. | Expected: The note is in an 'in-progress' state.
+Step 2: As Admin John, schedule a system maintenance window to begin in 15 minutes and broadcast a notification to all active users. | Input: Maintenance start: T+15 mins, Duration: 30 mins, Message: 'System maintenance starting soon. Please save your work.' | Expected: Dr. Sarah's session displays a banner/popup with the maintenance notification and a countdown timer.
+Step 3: As Dr. Sarah, save the note as a draft. Log out. | Input: Click 'Save as Draft'. | Expected: The note is saved successfully. Dr. Sarah is logged out.
+Step 4: As Admin John, once the maintenance window begins, perform a graceful system shutdown, apply a mock patch, and restart the system. | Input: Execute shutdown script, run mock patch script, execute startup script. | Expected: The system shuts down without errors, the 'patch' is applied, and the system restarts successfully. Admin dashboard shows all services are online.
+Step 5: As Dr. Sarah, log back into the system after the maintenance window is over. | Input: User: 'sarah.chen', Password: 'securepassword' | Expected: Login is successful. System performance is normal.
+Step 6: Navigate to the patient chart for 'Jane Smith' and open the draft note. | Input: Patient: 'Jane Smith' | Expected: The draft note created in Step 1 is present and contains all the text entered before the shutdown. Data integrity is maintained.","The system can undergo planned maintenance without data loss, and users are effectively notified.
+Verification Criteria:
+• User notifications are displayed correctly.
+• In-progress work can be saved before shutdown.
+• Data is fully intact after the system is brought back online.","Required Data:
+• Test Patient 'Jane Smith'
+
+Test Environment: Pre-production environment that mirrors the production setup.
+
+Data Cleanup: Delete the draft note.",,MED-137,medium,60 minutes
+TC-MED-136-01,Verify Barcode Medication Administration (BCMA) 'Five Rights' Validation,critical,functional,"• A test patient 'John Doe' has an active IV order for 'Vancomycin 1g'.
+• A second test patient 'Jane Smith' exists.
+• Test barcodes for patients and medications (correct and incorrect) are available.
+• Nurse Mary's account is active.","Step 1: Log in as Nurse Mary on a mobile device and navigate to the eMAR for the correct patient, 'John Doe'. | Input: User: 'mary.johnson', Password: 'nursepassword' | Expected: The eMAR for John Doe is displayed. An order for 'Vancomycin 1g IV' is due.
+Step 2: Scan the barcode of the WRONG patient's wristband (e.g., patient 'Jane Smith'). | Input: Scan barcode for Jane Smith. | Expected: The system displays a loud, clear error: 'WRONG PATIENT. Scanned patient does not match selected patient.' The workflow is halted.
+Step 3: Scan the barcode of the correct patient's wristband ('John Doe'). | Input: Scan barcode for John Doe. | Expected: The system confirms 'Patient Verified' and prompts for the medication scan.
+Step 4: Scan the barcode of the WRONG medication (e.g., 'Ciprofloxacin 500mg'). | Input: Scan barcode for Ciprofloxacin. | Expected: The system displays a loud, clear error: 'WRONG MEDICATION. Scanned medication does not match order.' The workflow is halted.
+Step 5: Scan the barcode of the correct medication ('Vancomycin') but with the WRONG dose/concentration (e.g., a 500mg vial instead of 1g). | Input: Scan barcode for Vancomycin 500mg. | Expected: The system displays a clear warning: 'WRONG DOSE. Scanned dose does not match ordered dose. Requires 1g.' The workflow is halted.
+Step 6: Scan the correct patient, correct medication, and correct dose. | Input: Scan John Doe's wristband, then scan Vancomycin 1g barcode. | Expected: The system validates all checks and moves to the documentation screen, confirming the Five Rights have been electronically verified.","The BCMA system must prevent medication errors by strictly enforcing the Five Rights of medication administration through barcode validation.
+Verification Criteria:
+• Wrong patient scan results in a hard stop.
+• Wrong medication scan results in a hard stop.
+• Wrong dose scan results in a hard stop.","Required Data:
+• Patient John Doe with order for Vancomycin 1g IV
+• Patient Jane Smith
+• Barcodes: John Doe wristband, Jane Smith wristband, Vancomycin 1g, Ciprofloxacin 500mg, Vancomycin 500mg
+
+Test Environment: Test environment with a mobile device and a connected barcode scanner.
+
+Data Cleanup: Un-document the medication administration event.",,MED-136,medium,30 minutes
+TC-MED-136-02,Measure Patient Encounter Performance and Efficiency for Dr. Sarah,high,functional,"• A 'Complex Patient' with a large volume of historical data is configured in the system.
+• Dr. Sarah's user account is active.","Step 1: Log in as Dr. Sarah. Start a timer. | Input: User: 'sarah.chen', Password: 'securepassword' | Expected: Login is successful.
+Step 2: Search for and click to open the chart of a patient with a large medical history (e.g., >10 years of data, >50 problem entries, >100 medications). | Input: Patient: 'Complex Patient' | Expected: The patient's chart, including the summary view, loads completely. Stop the timer and record the time. The time should be less than 3.0 seconds.
+Step 3: Start a new timer. Begin the documentation workflow for a routine follow-up visit. | Input: N/A | Expected: The documentation template (e.g., SOAP note) opens.
+Step 4: Quickly fill out all sections of the SOAP note, order one new lab test, and refill one existing medication. | Input: Enter text in S, O, A, P fields. Order 'HbA1c'. Refill 'Metformin'. | Expected: All data is entered without system lag. Each action (opening order entry, signing order) completes in under 2 seconds.
+Step 5: Sign the note to finalize the encounter documentation. | Input: Click 'Sign Note'. | Expected: The note is signed and the encounter is closed. Stop the timer. The total time for steps 3-5 should be less than 5 minutes.","The system meets the critical performance success factors for Dr. Sarah's workflow, ensuring efficiency.
+Verification Criteria:
+• Patient chart load time is measured and recorded.
+• Total documentation time is measured and recorded.","Required Data:
+• Patient record with extensive history (problems, allergies, medications, notes).
+
+Test Environment: Performance test environment with a database size and network latency that mimics production.
+
+Data Cleanup: Delete the newly created note and lab order.",,MED-136,medium,15 minutes
+TC-MED-136-03,Verify Security Incident Response Log Review for Admin John,high,security,"• A 'VIP Patient' is flagged in the system to trigger alerts on access.
+• A 'test.nurse' user account exists that should not have access to the VIP patient.
+• Admin John's account is configured to receive security alerts.","Step 1: As a test user (e.g., a nurse from another unit), attempt to access the chart of a high-profile 'VIP' patient, triggering a security alert. | Input: User: 'test.nurse', Patient: 'VIP Patient' | Expected: Access is either denied or requires a 'break-the-glass' override. A high-priority security alert is sent to Admin John.
+Step 2: Log in as Admin John and navigate to the security monitoring dashboard. | Input: User: 'john.smith', Password: 'adminpassword' | Expected: The dashboard displays the new high-priority alert for 'Inappropriate PHI Access Attempt'.
+Step 3: Click on the alert to drill down into the details. | Input: Click alert. | Expected: A detailed view opens, showing the user ('test.nurse'), patient ('VIP Patient'), timestamp, and nature of the alert.
+Step 4: From the alert details, click a link to 'View Full Audit Log for this User'. | Input: Click 'View Audit Log' button. | Expected: The system displays a comprehensive audit log for 'test.nurse' for the last 24 hours. The log is easy to read and filter. The specific access attempt is highlighted.
+Step 5: Review the log to check for other suspicious access patterns by this user. | Input: Scroll and filter the log. | Expected: The log provides a clear history of all of the user's actions (logins, patient searches, chart views), enabling a thorough investigation.","The system provides tools for rapid security incident investigation through real-time alerting and comprehensive, easily accessible audit logs.
+Verification Criteria:
+• Alert is generated in real-time.
+• Admin can access detailed audit logs directly from the alert.
+• The audit log contains sufficient detail for an investigation.","Required Data:
+• VIP Patient record
+• Non-privileged user account 'test.nurse'
+
+Test Environment: Staging environment with security alerting and monitoring enabled.
+
+Data Cleanup: Clear the security alert from the dashboard.",,MED-136,medium,25 minutes
+TC-MED-139-01,Edge Case - Verify Data Integrity with Simultaneous Patient Record Access,high,functional,"• A test patient 'John Doe' has at least two active medications (e.g., 'Lisinopril' and 'Metformin').
+• User accounts for Dr. Sarah and Nurse Mary exist with privileges to modify medication lists.","Step 1: Log in as Dr. Sarah on one workstation. Log in as Nurse Mary on a second workstation. | Input: User 1: 'sarah.chen', User 2: 'mary.johnson' | Expected: Both users are logged in successfully.
+Step 2: Both users search for and open the same patient's chart, 'John Doe', at the same time. | Input: Patient: 'John Doe' | Expected: Both users can view the patient's chart. The system may display a banner indicating that another user is also in the chart, e.g., 'Dr. Sarah Chen is also viewing this chart'.
+Step 3: Both users navigate to the medication list. Dr. Sarah attempts to discontinue 'Lisinopril'. At the same time, Nurse Mary attempts to discontinue 'Metformin'. | Input: Dr. Sarah: Discontinue Lisinopril. Nurse Mary: Discontinue Metformin. | Expected: The system should use optimistic or pessimistic locking. The first user to save their change is successful. The second user, upon trying to save, receives a notification that the record has been updated by another user and their view needs to be refreshed.
+Step 4: The second user (e.g., Nurse Mary) refreshes her view. | Input: Click 'Refresh' button. | Expected: Nurse Mary's view of the medication list is updated, showing that Lisinopril has been discontinued by Dr. Sarah.
+Step 5: Nurse Mary now re-applies her change to discontinue 'Metformin' and saves. | Input: Discontinue Metformin, click 'Save'. | Expected: The change is saved successfully. The final medication list correctly reflects that both Lisinopril and Metformin are discontinued. There is no data corruption or lost update.","The system must prevent data loss or corruption when multiple users modify the same record concurrently, ensuring data integrity.
+Verification Criteria:
+• A record locking or refresh mechanism is in place.
+• The second user is clearly notified that the record has changed.
+• No data from the first user's save is overwritten by the second user's save.","Required Data:
+• Patient 'John Doe' with active medications Lisinopril and Metformin.
+
+Test Environment: Test environment with two separate workstations/sessions.
+
+Data Cleanup: Re-activate the discontinued medications for the test patient.",,MED-139,medium,30 minutes
+TC-MED-139-02,Compliance Scenario - HIPAA Audit Trail Verification for Regulatory Inspection,high,compliance,"• User accounts for Dr. Sarah, Nurse Mary, and Admin John exist.
+• The admin/compliance role has permissions to run audit reports.
+• A test patient 'Jane Smith' exists.","Step 1: In a separate session, perform a series of actions on a specific patient's chart ('Jane Smith') using different user roles: Dr. Sarah views a lab result, Nurse Mary documents vital signs, and an admin views the chart for support. | Input: Various actions by different users on patient 'Jane Smith'. | Expected: A series of auditable events are created for the patient's record.
+Step 2: Log in as Admin John (or a compliance officer role). | Input: User: 'john.smith', Password: 'adminpassword' | Expected: The user is logged in to the administrative dashboard.
+Step 3: Navigate to the Audit Reporting or Compliance module. | Input: N/A | Expected: The audit reporting interface is displayed.
+Step 4: Generate a report of all activity for patient 'Jane Smith' for today's date. | Input: Report Type: 'Patient Activity', Patient: 'Jane Smith', Start Date: Today, End Date: Today. | Expected: The system generates a report within 2 minutes. The report is displayed on screen and has an option to export to PDF or CSV.
+Step 5: Review the generated report for completeness and accuracy. | Input: N/A | Expected: The report contains separate, clear entries for each action performed in Step 1. Each entry includes: a timestamp, the full name/ID of the user who performed the action, the type of action (e.g., 'View Lab', 'Document Vitals'), the patient's name/ID, and the workstation/IP address.
+Step 6: Export the report to PDF and verify its contents. | Input: Click 'Export to PDF'. | Expected: A PDF file is generated. The file is well-formatted, readable, and contains all the information verified in the previous step.","The system can produce a complete, accurate, and human-readable audit report for a specific patient on demand to satisfy regulatory requests.
+Verification Criteria:
+• The report includes all actions performed on the patient's record.
+• Each log entry contains the 'who, what, when, where' of the action.
+• The report can be generated and exported in a standard format.","Required Data:
+• Test Patient 'Jane Smith'
+
+Test Environment: Staging environment with full audit logging enabled.
+
+Data Cleanup: Delete the generated report file.",,MED-139,medium,40 minutes
+TC-MED-135-01,Verify Efficient Clinical Documentation Using Templates and Smart Phrases,medium,functional,"• Dr. Sarah's user account is configured with access to note templates.
+• A 'Diabetes Follow-Up' template has been created.
+• Smart phrases '.hba1cplan' and '.counsel[TIME]' have been configured in the system.","Step 1: Log in as Dr. Sarah and open a new note for a patient encounter. | Input: User: 'sarah.chen', Patient: 'John Doe' | Expected: A blank note screen is displayed.
+Step 2: Apply a pre-defined note template for a 'Diabetes Follow-Up' visit. | Input: Select Template: 'Diabetes Follow-Up' | Expected: The note is populated with the template structure, including sections for HPI, ROS, Physical Exam, and A/P, with common text and placeholders.
+Step 3: In the Assessment/Plan section, type a smart phrase shortcut, such as '.hba1cplan'. | Input: Text: '.hba1cplan' | Expected: The shortcut text is automatically replaced with a full sentence or paragraph, e.g., 'Patient's HbA1c is stable. Will continue current medication regimen. Recheck in 3 months.'
+Step 4: Use another smart phrase that includes wildcards or placeholders, such as '.counsel[TIME]'. | Input: Text: '.counsel15' | Expected: The text expands to 'Counseled patient for 15 minutes regarding diet and exercise.' The system correctly inserts the number into the expanded text.","The system's documentation tools (templates, smart phrases) function correctly and measurably reduce the time and clicks required to complete a clinical note.
+Verification Criteria:
+• Templates populate the note correctly.
+• Smart phrases expand as expected.
+• Smart phrases with variables populate correctly.","Required Data:
+• Note Templates
+• Smart Phrase library
+
+Test Environment: Staging environment.
+
+Data Cleanup: Delete the created note.",,MED-135,medium,20 minutes
+TC-MED-135-02,Verify Mobile Device Performance and Accessibility for ICU Nurse,high,functional,"• The ICU test area has multiple Wi-Fi access points to simulate roaming.
+• A test patient with active orders, medications, and recent vital signs exists.
+• Nurse Mary's account is active.","Step 1: Log in as Nurse Mary on a hospital-provided tablet from one end of the ICU test area. | Input: User: 'mary.johnson', Password: 'nursepassword' | Expected: Login is successful within 5 seconds. The multi-patient view for the ICU is displayed.
+Step 2: From the multi-patient view, tap to open the chart of a critical patient. Start a timer. | Input: Tap on patient 'John Doe'. | Expected: The patient's main chart summary/dashboard loads. Stop the timer. The time should be less than 4 seconds, meeting the <30 second goal for critical info access.
+Step 3: Navigate to the patient's Medication Administration Record (eMAR). | Input: Tap 'eMAR' tab. | Expected: The eMAR loads completely within 3 seconds.
+Step 4: Walk to the other end of the ICU test area, forcing the device to switch Wi-Fi access points. | Input: Physical movement across the unit. | Expected: The application remains connected and responsive. No session timeout or 'reconnecting' message is displayed.
+Step 5: While still at the new location, navigate to the real-time vital signs flowsheet. | Input: Tap 'Flowsheets' tab. | Expected: The flowsheet loads within 3 seconds and displays the most recent data.","The mobile application provides fast, reliable access to critical patient data and maintains a stable session while roaming within the clinical environment.
+Verification Criteria:
+• Chart and module load times are within acceptable limits.
+• The session is not interrupted by Wi-Fi access point transitions.","Required Data:
+• ICU test patient record.
+
+Test Environment: A physical test area mimicking an ICU with enterprise-grade Wi-Fi. A standard hospital tablet device.
+
+Data Cleanup: Log out of the user session.",,MED-135,medium,25 minutes
