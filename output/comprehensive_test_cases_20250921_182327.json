@@ -1,0 +1,447 @@
+{
+  "test_cases": [
+    {
+      "test_case_id": "TC-REQ-004-001",
+      "title": "Verify Automated Daily Backup and Integrity Check",
+      "description": "This test case validates the system's ability to perform automated daily backups at the scheduled time, store them in a geographically separate location, and verify their integrity. This is a critical control for the HIPAA Security Rule's contingency plan requirements.",
+      "metadata": {
+        "requirement_id": "REQ-004",
+        "test_type": "compliance",
+        "priority": "critical",
+        "compliance_standards": [
+          "HIPAA",
+          "ISO 13485"
+        ],
+        "risk_level": "medium",
+        "software_class": "B",
+        "estimated_duration": "90 minutes",
+        "automation_feasible": false,
+        "test_category": "positive"
+      },
+      "test_steps": [
+        {
+          "step_number": 1,
+          "action": "Log in as a Test Clinician. Create a new patient record with unique, identifiable data.",
+          "input_data": "Patient Name: 'BackupTest Patient', DOB: '1980-01-01', MRN: 'BKP-TEST-001'. Add a note: 'Data for backup verification at [current timestamp]'.",
+          "expected_result": "The patient record is successfully created and visible in the system. The note is saved correctly."
+        },
+        {
+          "step_number": 2,
+          "action": "As a System Administrator, navigate to the Backup & Recovery module. Manually trigger the 'Daily Backup' job. Note the start time.",
+          "input_data": "N/A",
+          "expected_result": "The system confirms the backup job has started. The job status shows as 'Running' in the dashboard."
+        },
+        {
+          "step_number": 3,
+          "action": "Monitor the system and audit logs for the completion of the backup job.",
+          "input_data": "Filter audit logs for 'Backup' events.",
+          "expected_result": "An audit log entry appears with Event Type: 'System Backup', Status: 'Success', and details including the backup file name and completion timestamp."
+        },
+        {
+          "step_number": 4,
+          "action": "Access the designated geographically separate backup storage location (e.g., a specific S3 bucket in a different region).",
+          "input_data": "Storage credentials for the off-site location.",
+          "expected_result": "A new backup file is present. The filename and timestamp match the details from the audit log in the previous step."
+        },
+        {
+          "step_number": 5,
+          "action": "Review the backup job logs for evidence of the post-backup integrity verification.",
+          "input_data": "Job ID from the backup run.",
+          "expected_result": "The log contains explicit messages confirming the successful completion of the integrity check, such as 'Backup integrity verification successful' or 'Checksum validation passed'."
+        }
+      ],
+      "test_data": {
+        "required_data": [
+          "System Administrator credentials",
+          "Test Clinician credentials",
+          "Credentials for off-site backup storage"
+        ],
+        "test_environment": "Staging environment with production-like configuration and access to the off-site backup repository.",
+        "data_cleanup": "The test patient 'BKP-TEST-001' should be marked as a test record. The generated backup file should be retained as evidence and then archived according to data retention policies."
+      },
+      "prerequisites": [
+        "User accounts with 'System Administrator' and 'Test Clinician' roles must exist.",
+        "The automated backup job must be configured with a defined schedule and target off-site location.",
+        "The test environment must be stable and have representative data."
+      ],
+      "expected_results": {
+        "primary_result": "The system successfully creates an integrity-checked backup in a geographically separate location, and the entire process is logged for audit purposes.",
+        "verification_criteria": [
+          "A backup file is created in the correct off-site location.",
+          "The backup process completes without errors.",
+          "Logs confirm that an integrity check was performed and passed.",
+          "An audit trail entry for the backup event is created and is immutable."
+        ]
+      },
+      "pass_criteria": [
+        "All test steps are completed successfully.",
+        "The backup file is created in the off-site location and its integrity is verified.",
+        "All actions are correctly recorded in the audit log."
+      ],
+      "fail_criteria": [
+        "The backup job fails to run or completes with errors.",
+        "The backup file is not created in the designated off-site location.",
+        "The system logs do not contain evidence of a successful integrity check.",
+        "The audit log is missing an entry for the backup event."
+      ],
+      "post_conditions": [
+        "A new, valid, and verified backup of the system database exists in the off-site storage.",
+        "The system remains in a normal operational state."
+      ],
+      "compliance_validation": {
+        "regulatory_requirements": [
+          "HIPAA Security Rule - 45 CFR § 164.308(a)(7)(i): Contingency Plan",
+          "HIPAA Security Rule - 45 CFR § 164.308(a)(7)(ii)(A): Data Backup Plan",
+          "HIPAA Security Rule - 45 CFR § 164.312(c)(1): Integrity"
+        ],
+        "validation_evidence": "Screenshots of the audit log showing the backup event. Screenshot of the off-site storage location showing the backup file with its timestamp. A copy of the detailed backup job log showing the integrity check confirmation."
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-004-002",
+      "title": "Verify System Restoration from Backup within 4-Hour RTO",
+      "description": "This test case validates the system's disaster recovery capability by simulating a data loss event and restoring the system from a known good backup. The test measures the recovery time against the 4-hour Recovery Time Objective (RTO) as required by the HIPAA contingency plan.",
+      "metadata": {
+        "requirement_id": "REQ-004",
+        "test_type": "functional",
+        "priority": "critical",
+        "compliance_standards": [
+          "HIPAA",
+          "ISO 13485"
+        ],
+        "risk_level": "medium",
+        "software_class": "B",
+        "estimated_duration": "5 hours",
+        "automation_feasible": false,
+        "test_category": "positive"
+      },
+      "test_steps": [
+        {
+          "step_number": 1,
+          "action": "Identify a known good backup file from a previous test (e.g., from TC-REQ-004-001). Note the backup timestamp. Verify the patient 'BKP-TEST-001' exists in the system.",
+          "input_data": "Backup file name: 'daily-backup-YYYY-MM-DD-HHMMSS.bak'. Patient MRN: 'BKP-TEST-001'.",
+          "expected_result": "The backup file is confirmed as available and valid. The patient record is present in the UI."
+        },
+        {
+          "step_number": 2,
+          "action": "Simulate a data loss event by permanently deleting the patient record created for the backup test.",
+          "input_data": "Patient MRN: 'BKP-TEST-001'. Use a database script or an admin function to delete the record.",
+          "expected_result": "Searching for patient 'BKP-TEST-001' in the UI and database yields no results. The data is confirmed to be deleted."
+        },
+        {
+          "step_number": 3,
+          "action": "As a System Administrator, initiate the system recovery process using the identified backup file. Start a timer immediately.",
+          "input_data": "Backup file: 'daily-backup-YYYY-MM-DD-HHMMSS.bak'.",
+          "expected_result": "The system enters a maintenance/recovery mode. The restoration process begins, with progress indicated in the system console/logs."
+        },
+        {
+          "step_number": 4,
+          "action": "Monitor the restoration process until completion. Once the system is back online and operational, stop the timer.",
+          "input_data": "N/A",
+          "expected_result": "The system returns to a normal operational state. The total restoration time is recorded."
+        },
+        {
+          "step_number": 5,
+          "action": "Verify that the total restoration time is less than the 4-hour RTO.",
+          "input_data": "Recorded restoration time.",
+          "expected_result": "The recorded time is less than 240 minutes."
+        },
+        {
+          "step_number": 6,
+          "action": "Log in to the restored system. Search for the patient record that was deleted.",
+          "input_data": "Patient MRN: 'BKP-TEST-001'.",
+          "expected_result": "The patient record for 'BKP-TEST-001' is found and all data is identical to its state at the time the backup was taken."
+        },
+        {
+          "step_number": 7,
+          "action": "Check the audit logs for a record of the system restoration event.",
+          "input_data": "Filter audit logs for 'Restore' or 'Recovery' events.",
+          "expected_result": "An immutable audit log entry exists detailing the restoration event, including the backup file used, the user who initiated it, and timestamps."
+        }
+      ],
+      "test_data": {
+        "required_data": [
+          "A valid, integrity-checked backup file.",
+          "System Administrator credentials.",
+          "Database access credentials for data deletion/verification."
+        ],
+        "test_environment": "A dedicated test environment that can be safely taken offline and restored without impacting other testing activities.",
+        "data_cleanup": "The system is now in the state of the last backup. Any subsequent test data created before the restore is now gone. This must be communicated to other testers. The restored test patient 'BKP-TEST-001' should be marked as a test record."
+      },
+      "prerequisites": [
+        "A full, successful backup has been completed and the backup file is accessible (as per TC-REQ-004-001).",
+        "The documented disaster recovery procedure is available to the tester.",
+        "The test environment is isolated to prevent disruption."
+      ],
+      "expected_results": {
+        "primary_result": "The system is successfully restored from a backup within the 4-hour RTO, and all data from the backup is intact and correct.",
+        "verification_criteria": [
+          "Total restoration time is documented and is <= 4 hours.",
+          "Data that was deleted before the restore is now present in the system.",
+          "The system is fully functional after restoration.",
+          "The restoration event is recorded in the audit trail."
+        ]
+      },
+      "pass_criteria": [
+        "The system is restored successfully within the 4-hour RTO.",
+        "All data from the backup point-in-time is verified to be present and correct.",
+        "All steps complete successfully."
+      ],
+      "fail_criteria": [
+        "The restoration process takes longer than 4 hours.",
+        "The restoration process fails or completes with errors.",
+        "Restored data is corrupt, incomplete, or incorrect.",
+        "The system is not fully functional after the restore.",
+        "The audit log does not contain a record of the restoration."
+      ],
+      "post_conditions": [
+        "The system is online and operational.",
+        "The system's data state is reverted to the point-in-time of the backup used for restoration."
+      ],
+      "compliance_validation": {
+        "regulatory_requirements": [
+          "HIPAA Security Rule - 45 CFR § 164.308(a)(7)(ii)(B): Disaster Recovery Plan",
+          "HIPAA Security Rule - 45 CFR § 164.308(a)(7)(ii)(C): Emergency Mode Operation Plan"
+        ],
+        "validation_evidence": "A signed and dated test execution log showing the start time, end time, and total duration of the recovery process. Screenshots of the data before deletion, after deletion, and after successful restoration. Screenshot of the audit log entry for the recovery event."
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-008-001",
+      "title": "Verify Data Exchange using HL7 FHIR R4 Patient Resource (Create and Read)",
+      "description": "This test case validates that the system can correctly create and then read a Patient resource via its HL7 FHIR R4 API endpoint. This ensures basic interoperability and adherence to the standard, a key aspect of software integration testing under IEC 62304.",
+      "metadata": {
+        "requirement_id": "REQ-008",
+        "test_type": "functional",
+        "priority": "high",
+        "compliance_standards": [
+          "IEC 62304",
+          "ISO 13485"
+        ],
+        "risk_level": "medium",
+        "software_class": "B",
+        "estimated_duration": "45 minutes",
+        "automation_feasible": true,
+        "test_category": "positive"
+      },
+      "test_steps": [
+        {
+          "step_number": 1,
+          "action": "Using an API client (e.g., Postman), obtain an OAuth 2.0 access token with the necessary scopes (e.g., 'patient/Patient.write', 'patient/Patient.read').",
+          "input_data": "Client ID, Client Secret, Auth URL, Token URL.",
+          "expected_result": "A valid JWT access token is returned."
+        },
+        {
+          "step_number": 2,
+          "action": "Construct a valid FHIR R4 Patient resource in JSON format.",
+          "input_data": "{\n  \"resourceType\": \"Patient\",\n  \"active\": true,\n  \"name\": [ { \"use\": \"official\", \"family\": \"FHIR-Test\", \"given\": [ \"John\" ] } ],\n  \"gender\": \"male\",\n  \"birthDate\": \"1974-12-25\"\n}",
+          "expected_result": "The JSON is well-formed and valid according to the FHIR R4 Patient profile."
+        },
+        {
+          "step_number": 3,
+          "action": "Send an HTTP POST request to the FHIR API's /Patient endpoint with the JSON payload and the authorization token in the header.",
+          "input_data": "POST /fhir/Patient\nAuthorization: Bearer [access_token]\nContent-Type: application/fhir+json",
+          "expected_result": "The API returns an HTTP `201 Created` status code. The 'Location' header contains the URL of the newly created resource (e.g., '/fhir/Patient/123')."
+        },
+        {
+          "step_number": 4,
+          "action": "Extract the patient ID from the 'Location' header returned in the previous step.",
+          "input_data": "Location header value.",
+          "expected_result": "A unique patient ID (e.g., '123') is successfully extracted."
+        },
+        {
+          "step_number": 5,
+          "action": "Send an HTTP GET request to the URL for the newly created patient, including the authorization token.",
+          "input_data": "GET /fhir/Patient/123\nAuthorization: Bearer [access_token]",
+          "expected_result": "The API returns an HTTP `200 OK` status. The response body contains the full Patient resource, matching the data sent in step 2."
+        },
+        {
+          "step_number": 6,
+          "action": "Log into the application UI with appropriate credentials. Navigate to the patient search function and search for the new patient.",
+          "input_data": "Search for 'FHIR-Test, John'.",
+          "expected_result": "The patient 'John FHIR-Test' is found in the search results. Opening the patient's chart shows the correct gender ('male') and birth date ('1974-12-25')."
+        }
+      ],
+      "test_data": {
+        "required_data": [
+          "API client credentials (Client ID, Secret).",
+          "UI user credentials with patient access rights."
+        ],
+        "test_environment": "Test environment with the FHIR API endpoint enabled and accessible.",
+        "data_cleanup": "Delete the created patient 'John FHIR-Test' via API or UI. Revoke the test access token if necessary."
+      },
+      "prerequisites": [
+        "The FHIR server is running and configured.",
+        "An API client application has been registered in the system.",
+        "The tester has a valid user account for the UI."
+      ],
+      "expected_results": {
+        "primary_result": "The system correctly processes FHIR R4 API requests to create and read patient data, and this data is reflected accurately in the main application UI.",
+        "verification_criteria": [
+          "A POST request with valid FHIR Patient data returns a 201 status.",
+          "A GET request to the new resource URL returns a 200 status and the correct data.",
+          "The patient created via API is searchable and viewable in the UI."
+        ]
+      },
+      "pass_criteria": [
+        "All API requests receive the expected HTTP status codes and response bodies.",
+        "Data consistency is maintained between the API and the UI.",
+        "All test steps pass."
+      ],
+      "fail_criteria": [
+        "API returns an error code (5xx or 4xx) for a valid request.",
+        "Data returned by the GET request does not match the data sent in the POST request.",
+        "Patient created via API does not appear in the UI, or the data is incorrect."
+      ],
+      "post_conditions": [
+        "The test patient record is deleted from the system.",
+        "The system state is returned to its pre-test condition."
+      ],
+      "compliance_validation": {
+        "regulatory_requirements": [
+          "IEC 62304, Section 5.5: Software integration and integration testing",
+          "IEC 62304, Section 5.1.1: Software Development Plan (which should include the integration strategy with external standards like FHIR)"
+        ],
+        "validation_evidence": "A saved collection of API requests and responses (e.g., Postman collection run report). Screenshots of the patient record in the UI after creation via API. Audit logs showing the creation of the patient record by the API service account."
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-008-002",
+      "title": "Verify Error Handling for Invalid HL7 FHIR R4 Patient Data",
+      "description": "This negative test case validates that the system's HL7 FHIR R4 API endpoint correctly identifies and rejects malformed or invalid data. This ensures data integrity and robust error handling, which is a key component of software risk management under IEC 62304.",
+      "metadata": {
+        "requirement_id": "REQ-008",
+        "test_type": "security",
+        "priority": "high",
+        "compliance_standards": [
+          "IEC 62304",
+          "ISO 13485"
+        ],
+        "risk_level": "medium",
+        "software_class": "B",
+        "estimated_duration": "30 minutes",
+        "automation_feasible": true,
+        "test_category": "negative"
+      },
+      "test_steps": [
+        {
+          "step_number": 1,
+          "action": "Using an API client, obtain a valid OAuth 2.0 access token.",
+          "input_data": "Client ID, Client Secret, Auth URL, Token URL.",
+          "expected_result": "A valid JWT access token is returned."
+        },
+        {
+          "step_number": 2,
+          "action": "Construct an invalid FHIR R4 Patient resource with a missing required field (e.g., 'gender').",
+          "input_data": "{\n  \"resourceType\": \"Patient\",\n  \"name\": [ { \"family\": \"Invalid-Test\", \"given\": [ \"Jane\" ] } ],\n  \"birthDate\": \"1985-05-15\"\n}",
+          "expected_result": "The JSON payload is prepared."
+        },
+        {
+          "step_number": 3,
+          "action": "Send an HTTP POST request to the /Patient endpoint with the invalid JSON payload.",
+          "input_data": "POST /fhir/Patient\nAuthorization: Bearer [access_token]\nContent-Type: application/fhir+json",
+          "expected_result": "The API returns an HTTP `400 Bad Request` status code."
+        },
+        {
+          "step_number": 4,
+          "action": "Inspect the response body from the failed request.",
+          "input_data": "Response body from step 3.",
+          "expected_result": "The response body contains a FHIR 'OperationOutcome' resource. The 'diagnostics' text clearly states that the 'gender' field is missing or invalid."
+        },
+        {
+          "step_number": 5,
+          "action": "Construct another invalid FHIR R4 Patient resource, this time with an incorrect data type (e.g., 'birthDate' as a number).",
+          "input_data": "{\n  \"resourceType\": \"Patient\",\n  \"name\": [ { \"family\": \"Invalid-Test\", \"given\": [ \"Jane\" ] } ],\n  \"gender\": \"female\",\n  \"birthDate\": 19850515\n}",
+          "expected_result": "The JSON payload is prepared."
+        },
+        {
+          "step_number": 6,
+          "action": "Send another HTTP POST request to the /Patient endpoint with the new invalid payload.",
+          "input_data": "POST /fhir/Patient\nAuthorization: Bearer [access_token]\nContent-Type: application/fhir+json",
+          "expected_result": "The API returns an HTTP `400 Bad Request` status code with an 'OperationOutcome' resource detailing the data type mismatch for 'birthDate'."
+        },
+        {
+          "step_number": 7,
+          "action": "Check the system database and UI to confirm that no partial or incorrect patient record was created from the failed attempts.",
+          "input_data": "Search for patient 'Invalid-Test, Jane'.",
+          "expected_result": "No patient record is found for 'Invalid-Test, Jane'. The database does not contain any artifacts from the failed requests."
+        }
+      ],
+      "test_data": {
+        "required_data": [
+          "API client credentials (Client ID, Secret).",
+          "UI user credentials for verification."
+        ],
+        "test_environment": "Test environment with the FHIR API endpoint enabled and accessible.",
+        "data_cleanup": "No data is created, so no cleanup is required."
+      },
+      "prerequisites": [
+        "The FHIR server is running and configured.",
+        "An API client application has been registered in the system."
+      ],
+      "expected_results": {
+        "primary_result": "The system's FHIR API correctly rejects invalid data with a 400-level error and provides a descriptive error message in an OperationOutcome resource.",
+        "verification_criteria": [
+          "Requests with missing required fields are rejected with a 400 error.",
+          "Requests with incorrect data types are rejected with a 400 error.",
+          "The error response body follows the FHIR OperationOutcome standard.",
+          "No data is persisted to the database from a failed request."
+        ]
+      },
+      "pass_criteria": [
+        "All invalid API requests are rejected with a 400 status code.",
+        "The response body for each failed request contains a valid and informative OperationOutcome.",
+        "Verification confirms no data was written to the database."
+      ],
+      "fail_criteria": [
+        "The API accepts invalid data and returns a 2xx status code.",
+        "The API returns a 5xx server error instead of a 4xx client error.",
+        "The API returns an uninformative or non-standard error message.",
+        "A partial or incorrect record is created in the database from a failed request."
+      ],
+      "post_conditions": [
+        "The system remains in a normal operational state.",
+        "No new data has been added to the system."
+      ],
+      "compliance_validation": {
+        "regulatory_requirements": [
+          "IEC 62304, Section 7: Software risk management process (specifically, mitigating risks from invalid external data).",
+          "IEC 62304, Section 5.5.4: Integration test documentation (documenting how the integration point handles failures)."
+        ],
+        "validation_evidence": "Saved API requests and the corresponding 400 error responses with OperationOutcome payloads. Screenshot of the UI/database query showing that no patient record was created. An entry in the software risk analysis file identifying 'invalid data from external system' as a hazard and 'input validation at API boundary' as the control, referencing this test case as verification."
+      }
+    }
+  ],
+  "summary": {
+    "total_test_cases": 4,
+    "by_type": {
+      "compliance": 1,
+      "functional": 2,
+      "security": 1
+    },
+    "by_priority": {
+      "critical": 2,
+      "high": 2
+    },
+    "by_compliance": {
+      "HIPAA": 2,
+      "IEC 62304": 2,
+      "FDA": 0
+    }
+  },
+  "generation_timestamp": "2025-09-21T18:23:27.812157",
+  "parameters": {
+    "requirements_count": 1,
+    "test_types": [
+      "functional",
+      "security",
+      "compliance"
+    ],
+    "standards": [
+      "FDA",
+      "HIPAA",
+      "IEC 62304"
+    ],
+    "risk_level": "medium"
+  }
+}

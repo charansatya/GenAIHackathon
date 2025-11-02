@@ -1,0 +1,604 @@
+{
+  "test_cases": [
+    {
+      "test_case_id": "TC-REQ-001-01",
+      "title": "Verify Patient Data Encryption at Rest (AES-256)",
+      "description": "This test case validates that all patient health information (PHI) is securely stored in the database using AES-256 encryption. This is a critical control to protect data from unauthorized access if the underlying storage is compromised, as required by the HIPAA Security Rule (45 CFR 164.312(a)(2)(iv)).",
+      "metadata": {
+        "requirement_id": "REQ-001",
+        "test_type": "security",
+        "priority": "critical",
+        "compliance_standards": [
+          "HIPAA",
+          "ISO 27001"
+        ],
+        "risk_level": "high",
+        "software_class": "B",
+        "estimated_duration": "45 minutes",
+        "automation_feasible": false,
+        "test_category": "positive"
+      },
+      "test_steps": [
+        {
+          "step_number": 1,
+          "action": "Log in to the application as a user with privileges to create and manage patient records (e.g., 'clinician_user').",
+          "input_data": "Username: 'clinician_user', Password: 'ValidPassword123!'",
+          "expected_result": "User is successfully authenticated and redirected to the application dashboard."
+        },
+        {
+          "step_number": 2,
+          "action": "Navigate to the 'New Patient' form and create a new patient record.",
+          "input_data": "First Name: 'John', Last Name: 'TestDoe', DOB: '1980-01-15', MRN: 'MRN-ENCRYPT-TEST01', Diagnosis: 'Hypertension'",
+          "expected_result": "A confirmation message 'Patient record created successfully' is displayed. The new patient record is visible in the patient list."
+        },
+        {
+          "step_number": 3,
+          "action": "Using database administration tools (e.g., DBeaver, SQL Server Management Studio), connect to the application's database with read-only credentials.",
+          "input_data": "Database credentials with read-only access.",
+          "expected_result": "A successful connection to the database is established."
+        },
+        {
+          "step_number": 4,
+          "action": "Execute a SQL query to retrieve the record for the patient created in step 2.",
+          "input_data": "SQL Query: `SELECT * FROM patients WHERE medical_record_number = 'MRN-ENCRYPT-TEST01';`",
+          "expected_result": "The query returns one row corresponding to the newly created patient."
+        },
+        {
+          "step_number": 5,
+          "action": "Inspect the values in the columns containing PHI (e.g., `first_name`, `last_name`, `date_of_birth`, `diagnosis`).",
+          "input_data": "N/A",
+          "expected_result": "The data in the PHI columns is not in plaintext. The values are long, unreadable strings, indicating they are encrypted. Non-sensitive fields like `record_id` or `creation_date` may be in plaintext."
+        }
+      ],
+      "test_data": {
+        "required_data": [
+          "A provisioned 'clinician_user' account.",
+          "Read-only access credentials for the application database."
+        ],
+        "test_environment": "Staging environment with a fully deployed application stack and database access for testers.",
+        "data_cleanup": "Delete the test patient record 'MRN-ENCRYPT-TEST01' via the application UI. Verify deletion from the database."
+      },
+      "prerequisites": [
+        "The application and its database are running in the designated test environment.",
+        "A test user account with clinician-level privileges exists.",
+        "Secure access to the database for verification purposes has been granted."
+      ],
+      "expected_results": {
+        "primary_result": "Patient data stored in the database is confirmed to be encrypted and not in plaintext.",
+        "verification_criteria": [
+          "Direct database inspection shows that columns designated for PHI contain encrypted, unreadable data.",
+          "The encryption algorithm used is documented and confirmed to be AES-256."
+        ]
+      },
+      "pass_criteria": [
+        "All PHI fields for the test patient are encrypted in the database.",
+        "The application remains functional, able to decrypt and display the data correctly in the UI for authorized users."
+      ],
+      "fail_criteria": [
+        "Any PHI field (e.g., name, DOB, diagnosis) is stored in plaintext in the database.",
+        "The data appears to be encoded (e.g., Base64) but not strongly encrypted."
+      ],
+      "post_conditions": [
+        "The test patient record is removed from the system.",
+        "Database access connections are closed."
+      ],
+      "compliance_validation": {
+        "regulatory_requirements": [
+          "HIPAA 45 CFR 164.312(a)(2)(iv) - Encryption and Decryption",
+          "ISO 27001 Annex A.10.1.1 - Policy on the use of cryptographic controls"
+        ],
+        "validation_evidence": "Screenshot of the database query result showing the encrypted data for the test patient. A snippet of the database schema or data dictionary documenting the encryption on the relevant columns."
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-001-02",
+      "title": "Verify Data in Transit Encryption using TLS 1.3",
+      "description": "This test case validates that all data transmitted between the client and server is encrypted using the TLS 1.3 protocol. This prevents eavesdropping and man-in-the-middle attacks, ensuring the confidentiality and integrity of PHI during transmission, as mandated by the HIPAA Security Rule.",
+      "metadata": {
+        "requirement_id": "REQ-001",
+        "test_type": "security",
+        "priority": "critical",
+        "compliance_standards": [
+          "HIPAA",
+          "ISO 27001"
+        ],
+        "risk_level": "high",
+        "software_class": "B",
+        "estimated_duration": "30 minutes",
+        "automation_feasible": true,
+        "test_category": "positive"
+      },
+      "test_steps": [
+        {
+          "step_number": 1,
+          "action": "On a client machine, start a network packet capture tool (e.g., Wireshark).",
+          "input_data": "Filter for traffic to and from the application server's IP address on port 443 (HTTPS).",
+          "expected_result": "Wireshark begins capturing packets."
+        },
+        {
+          "step_number": 2,
+          "action": "Using a web browser on the client machine, navigate to the application's login page and log in as an authorized user.",
+          "input_data": "Username: 'clinician_user', Password: 'ValidPassword123!'",
+          "expected_result": "User successfully logs in. The browser shows a secure connection (padlock icon)."
+        },
+        {
+          "step_number": 3,
+          "action": "Perform an action that transmits PHI, such as searching for a patient by name or MRN.",
+          "input_data": "Search for patient 'John TestDoe'.",
+          "expected_result": "The application sends a request to the server and displays the search results."
+        },
+        {
+          "step_number": 4,
+          "action": "Stop the packet capture in Wireshark and analyze the captured session.",
+          "input_data": "N/A",
+          "expected_result": "The capture file is saved and ready for analysis."
+        },
+        {
+          "step_number": 5,
+          "action": "Filter for the TLS handshake protocol and inspect the 'Server Hello' message.",
+          "input_data": "Wireshark filter: 'tls.handshake.type == 2'",
+          "expected_result": "The TLS protocol version is confirmed to be TLS 1.3."
+        },
+        {
+          "step_number": 6,
+          "action": "Inspect the 'Application Data' packets that were exchanged after the handshake.",
+          "input_data": "N/A",
+          "expected_result": "The payload of the application data packets is shown as 'Encrypted Application Data' and is not human-readable. The search query ('John TestDoe') is not visible in plaintext."
+        }
+      ],
+      "test_data": {
+        "required_data": [
+          "A provisioned 'clinician_user' account.",
+          "A test patient record to search for."
+        ],
+        "test_environment": "Staging environment. Client machine with Wireshark (or similar tool) installed. Network configuration that allows packet sniffing on the client.",
+        "data_cleanup": "Delete the Wireshark capture file after analysis."
+      },
+      "prerequisites": [
+        "The application server is configured to enforce TLS 1.3.",
+        "A network analysis tool like Wireshark is installed on the test client machine."
+      ],
+      "expected_results": {
+        "primary_result": "All communication between the client and server is encrypted using TLS 1.3.",
+        "verification_criteria": [
+          "The TLS handshake successfully negotiates TLS version 1.3.",
+          "Application data payloads, including login credentials and PHI, are encrypted and unreadable in packet captures."
+        ]
+      },
+      "pass_criteria": [
+        "The captured traffic confirms the use of TLS 1.3.",
+        "No PHI or sensitive data is transmitted in plaintext."
+      ],
+      "fail_criteria": [
+        "The connection uses an older, insecure protocol (e.g., TLS 1.1, SSLv3).",
+        "The connection is unencrypted (HTTP).",
+        "Any part of the PHI is visible in plaintext within the captured packets."
+      ],
+      "post_conditions": [
+        "The user is logged out of the application.",
+        "The packet capture is stopped."
+      ],
+      "compliance_validation": {
+        "regulatory_requirements": [
+          "HIPAA 45 CFR 164.312(e)(1) - Transmission Security",
+          "ISO 27001 Annex A.13.2.1 - Information transfer policies and procedures"
+        ],
+        "validation_evidence": "Screenshot from Wireshark showing the successful TLS 1.3 handshake. Screenshot showing an encrypted application data packet, proving the payload is not in plaintext."
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-002-01",
+      "title": "Verify Successful Login with Multi-Factor Authentication (MFA)",
+      "description": "This test case validates the primary positive path for Multi-Factor Authentication (MFA). It ensures an authorized user can access the system after providing a valid username, password, and a second factor token. This verifies compliance with strong authentication controls required by HIPAA.",
+      "metadata": {
+        "requirement_id": "REQ-002",
+        "test_type": "functional",
+        "priority": "critical",
+        "compliance_standards": [
+          "HIPAA",
+          "ISO 27001",
+          "IEC 62304"
+        ],
+        "risk_level": "high",
+        "software_class": "B",
+        "estimated_duration": "15 minutes",
+        "automation_feasible": true,
+        "test_category": "positive"
+      },
+      "test_steps": [
+        {
+          "step_number": 1,
+          "action": "Navigate to the application login page.",
+          "input_data": "URL of the application login page.",
+          "expected_result": "The login page with fields for username and password is displayed."
+        },
+        {
+          "step_number": 2,
+          "action": "Enter the credentials for a test user who is enrolled in MFA.",
+          "input_data": "Username: 'mfa_user', Password: 'ValidMfaPassword123!'",
+          "expected_result": "The system validates the credentials and presents a second screen prompting for an MFA code."
+        },
+        {
+          "step_number": 3,
+          "action": "Open the user's configured authenticator app (e.g., Google Authenticator, SMS) and retrieve the current one-time password (OTP).",
+          "input_data": "N/A",
+          "expected_result": "A valid 6-digit OTP is available."
+        },
+        {
+          "step_number": 4,
+          "action": "Enter the valid OTP into the MFA code field on the login page and submit.",
+          "input_data": "Example OTP: '123456'",
+          "expected_result": "The system validates the OTP and grants access, redirecting the user to the main application dashboard."
+        },
+        {
+          "step_number": 5,
+          "action": "As an auditor, check the audit log for this login event.",
+          "input_data": "Filter logs for 'mfa_user'.",
+          "expected_result": "An audit log entry exists for 'mfa_user' with an action of 'Login Success' and details indicating MFA was used."
+        }
+      ],
+      "test_data": {
+        "required_data": [
+          "A provisioned 'mfa_user' account with a password set.",
+          "The 'mfa_user' account must be enrolled in MFA with a known device or app."
+        ],
+        "test_environment": "Staging environment with MFA feature enabled.",
+        "data_cleanup": "No data cleanup required."
+      },
+      "prerequisites": [
+        "A test user account ('mfa_user') has been created and successfully enrolled in MFA.",
+        "The MFA service (e.g., SMS gateway, authenticator app integration) is functional."
+      ],
+      "expected_results": {
+        "primary_result": "User can successfully log in using a valid password and a valid MFA token.",
+        "verification_criteria": [
+          "User is redirected to the application dashboard after successful authentication.",
+          "The audit log correctly records the successful MFA-based login."
+        ]
+      },
+      "pass_criteria": [
+        "The user gains access to the application only after providing both valid factors of authentication."
+      ],
+      "fail_criteria": [
+        "The user is able to log in without being prompted for a second factor.",
+        "The system denies access even when a valid password and valid MFA token are provided."
+      ],
+      "post_conditions": [
+        "User 'mfa_user' is logged into the application."
+      ],
+      "compliance_validation": {
+        "regulatory_requirements": [
+          "HIPAA 45 CFR 164.312(d) - Person or Entity Authentication",
+          "ISO 27001 Annex A.9.4.2 - Secure log-on procedures",
+          "IEC 62304 Section 5.5.3 - Risk control measures for authentication"
+        ],
+        "validation_evidence": "Screenshots of the login screen, MFA prompt, and the post-login dashboard. Screenshot of the audit log showing the successful MFA login event."
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-002-03",
+      "title": "Verify Account Lockout After 5 Consecutive Failed Login Attempts",
+      "description": "This negative test case validates the account lockout security control. It ensures that after 5 failed login attempts, the account is temporarily locked to prevent brute-force attacks. This is a key risk control measure under HIPAA and IEC 62304.",
+      "metadata": {
+        "requirement_id": "REQ-002",
+        "test_type": "security",
+        "priority": "critical",
+        "compliance_standards": [
+          "HIPAA",
+          "ISO 27001",
+          "IEC 62304"
+        ],
+        "risk_level": "high",
+        "software_class": "B",
+        "estimated_duration": "20 minutes",
+        "automation_feasible": true,
+        "test_category": "negative"
+      },
+      "test_steps": [
+        {
+          "step_number": 1,
+          "action": "Navigate to the login page. Attempt to log in 5 consecutive times with a valid username and an incorrect password.",
+          "input_data": "Username: 'lockout_user', Password: 'IncorrectPassword' (for 5 attempts)",
+          "expected_result": "For each of the 5 attempts, an 'Invalid username or password' error message is displayed."
+        },
+        {
+          "step_number": 2,
+          "action": "On the 6th attempt, enter the valid username and the correct password.",
+          "input_data": "Username: 'lockout_user', Password: 'CorrectPassword123!'",
+          "expected_result": "Login is denied. A message is displayed indicating 'Your account has been locked due to too many failed login attempts. Please contact an administrator.'"
+        },
+        {
+          "step_number": 3,
+          "action": "Log in to the application as an administrator.",
+          "input_data": "Username: 'admin_user', Password: 'AdminPassword123!'",
+          "expected_result": "Administrator is successfully logged in."
+        },
+        {
+          "step_number": 4,
+          "action": "Navigate to the User Management section and search for the locked user.",
+          "input_data": "Search for 'lockout_user'.",
+          "expected_result": "The user 'lockout_user' is found and their account status is displayed as 'Locked'."
+        },
+        {
+          "step_number": 5,
+          "action": "Navigate to the Audit Log viewer and filter for events related to 'lockout_user'.",
+          "input_data": "Filter by username 'lockout_user'.",
+          "expected_result": "The log displays 5 'Login Failure' events followed by one 'Account Locked' event, all associated with 'lockout_user'."
+        }
+      ],
+      "test_data": {
+        "required_data": [
+          "A provisioned 'lockout_user' account with a known correct password.",
+          "A provisioned 'admin_user' account with user management privileges."
+        ],
+        "test_environment": "Staging environment with account lockout policy configured for 5 attempts.",
+        "data_cleanup": "Administrator must unlock the 'lockout_user' account via the User Management UI."
+      },
+      "prerequisites": [
+        "The account lockout feature is enabled and configured.",
+        "Test user accounts ('lockout_user', 'admin_user') are created and active."
+      ],
+      "expected_results": {
+        "primary_result": "The user account is locked after 5 failed login attempts and cannot be accessed even with the correct password.",
+        "verification_criteria": [
+          "An 'Account Locked' message is displayed to the user.",
+          "The account status is shown as 'Locked' in the admin interface.",
+          "The audit log contains records of the failed attempts and the account lock event."
+        ]
+      },
+      "pass_criteria": [
+        "Account is successfully locked after the 5th failed attempt.",
+        "Login with correct credentials fails on the 6th attempt.",
+        "All relevant events are recorded in the audit log."
+      ],
+      "fail_criteria": [
+        "The account is not locked after 5 failed attempts.",
+        "The user can log in on the 6th attempt with correct credentials.",
+        "The audit log does not record the failed attempts or the lockout event."
+      ],
+      "post_conditions": [
+        "The 'lockout_user' account is in a 'Locked' state."
+      ],
+      "compliance_validation": {
+        "regulatory_requirements": [
+          "HIPAA 45 CFR 164.308(a)(5)(ii)(D) - Password management",
+          "IEC 62304 Section 5.5.3 - Risk control measures",
+          "ISO 27001 Annex A.9.4.2 - Secure log-on procedures"
+        ],
+        "validation_evidence": "Screenshots of the final failed login attempt showing the lockout message, the admin view of the locked account, and the corresponding audit log entries."
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-003-01",
+      "title": "Verify Audit Log Generation for Patient Data Access",
+      "description": "This test case validates that accessing a patient's record is accurately captured in the audit trail. This is critical for monitoring access to PHI and ensuring accountability, as required by HIPAA and FDA 21 CFR Part 11.",
+      "metadata": {
+        "requirement_id": "REQ-003",
+        "test_type": "compliance",
+        "priority": "critical",
+        "compliance_standards": [
+          "FDA",
+          "HIPAA",
+          "ISO 13485"
+        ],
+        "risk_level": "high",
+        "software_class": "B",
+        "estimated_duration": "25 minutes",
+        "automation_feasible": true,
+        "test_category": "positive"
+      },
+      "test_steps": [
+        {
+          "step_number": 1,
+          "action": "Log in as a user with privileges to view patient records (e.g., 'clinician_user').",
+          "input_data": "Username: 'clinician_user', Password: 'ValidPassword123!'",
+          "expected_result": "User is successfully authenticated and at the application dashboard."
+        },
+        {
+          "step_number": 2,
+          "action": "Search for and open the detailed view of an existing patient record.",
+          "input_data": "Patient MRN: 'MRN-AUDIT-TEST02'",
+          "expected_result": "The detailed patient chart for 'MRN-AUDIT-TEST02' is displayed."
+        },
+        {
+          "step_number": 3,
+          "action": "Record the current system time and log out.",
+          "input_data": "N/A",
+          "expected_result": "User is logged out and returned to the login page."
+        },
+        {
+          "step_number": 4,
+          "action": "Log in as a user with audit log viewing privileges (e.g., 'auditor_user').",
+          "input_data": "Username: 'auditor_user', Password: 'AuditorPassword123!'",
+          "expected_result": "Auditor is successfully logged in."
+        },
+        {
+          "step_number": 5,
+          "action": "Navigate to the Audit Log viewer and filter the log for events related to the patient record accessed.",
+          "input_data": "Filter by User ID: 'clinician_user', Event Type: 'Data Access', Target ID: 'MRN-AUDIT-TEST02'",
+          "expected_result": "An audit log entry is found that matches the filter criteria."
+        },
+        {
+          "step_number": 6,
+          "action": "Verify the details of the audit log entry.",
+          "input_data": "N/A",
+          "expected_result": "The log entry contains: the correct User ID ('clinician_user'), a timestamp matching the time of access, the Event Type ('Data Access' or 'View Record'), the IP address of the user, and the ID of the patient record that was accessed ('MRN-AUDIT-TEST02')."
+        }
+      ],
+      "test_data": {
+        "required_data": [
+          "A provisioned 'clinician_user' account.",
+          "A provisioned 'auditor_user' account.",
+          "An existing patient record with MRN 'MRN-AUDIT-TEST02'."
+        ],
+        "test_environment": "Staging environment with audit logging enabled.",
+        "data_cleanup": "No data cleanup required."
+      },
+      "prerequisites": [
+        "Test user accounts ('clinician_user', 'auditor_user') and a test patient record exist.",
+        "The audit logging module is fully functional."
+      ],
+      "expected_results": {
+        "primary_result": "An accurate, detailed audit log entry is created whenever a user accesses a patient record.",
+        "verification_criteria": [
+          "The audit log contains an entry for the specific access event.",
+          "The entry correctly identifies who, what, and when the data was accessed."
+        ]
+      },
+      "pass_criteria": [
+        "The audit log entry is created successfully and contains all required details (user, action, target, timestamp)."
+      ],
+      "fail_criteria": [
+        "No audit log entry is created for the data access event.",
+        "The audit log entry is missing critical information (e.g., user ID, patient ID) or contains incorrect information."
+      ],
+      "post_conditions": [
+        "User 'auditor_user' is logged into the system."
+      ],
+      "compliance_validation": {
+        "regulatory_requirements": [
+          "HIPAA 45 CFR 164.312(b) - Audit Controls",
+          "FDA 21 CFR Part 11.10(e) - Audit Trails",
+          "ISO 13485 Section 4.2.5 - Control of records"
+        ],
+        "validation_evidence": "Screenshot of the patient record being viewed. Screenshot of the audit log viewer showing the corresponding 'Data Access' event with all required details highlighted."
+      }
+    },
+    {
+      "test_case_id": "TC-REQ-003-03",
+      "title": "Verify Audit Log Immutability and Tamper-Proofing",
+      "description": "This security test validates that audit logs are tamper-proof, a fundamental requirement of FDA 21 CFR Part 11 and HIPAA. It attempts to modify and delete log entries through direct database access to ensure the integrity of the audit trail is protected by technical controls.",
+      "metadata": {
+        "requirement_id": "REQ-003",
+        "test_type": "security",
+        "priority": "critical",
+        "compliance_standards": [
+          "FDA",
+          "HIPAA"
+        ],
+        "risk_level": "high",
+        "software_class": "B",
+        "estimated_duration": "1 hour",
+        "automation_feasible": false,
+        "test_category": "negative"
+      },
+      "test_steps": [
+        {
+          "step_number": 1,
+          "action": "Log in as 'clinician_user' and perform a clearly identifiable action, such as updating a patient's address.",
+          "input_data": "Patient MRN: 'MRN-IMMUTABLE-TEST03', New Address: '123 Tamper Lane'",
+          "expected_result": "The address is updated successfully. This creates a specific audit log entry to target."
+        },
+        {
+          "step_number": 2,
+          "action": "As an 'auditor_user', view the audit log and confirm the creation of the log entry from step 1. Note the log entry's unique ID.",
+          "input_data": "Filter for 'MRN-IMMUTABLE-TEST03'.",
+          "expected_result": "The 'Update Address' log entry is visible with correct details."
+        },
+        {
+          "step_number": 3,
+          "action": "Gain direct access to the database with a privileged database account (e.g., a DBA, not an application user).",
+          "input_data": "DBA credentials.",
+          "expected_result": "Successful connection to the database."
+        },
+        {
+          "step_number": 4,
+          "action": "Attempt to execute an SQL UPDATE statement to alter the details of the log entry identified in step 2.",
+          "input_data": "SQL: `UPDATE audit_logs SET user_id = 'malicious_user' WHERE log_id = [ID from Step 2];`",
+          "expected_result": "The command fails. The database returns an error indicating a lack of permissions, or that a trigger prevented the action. The operation must not succeed."
+        },
+        {
+          "step_number": 5,
+          "action": "Attempt to execute an SQL DELETE statement to remove the log entry.",
+          "input_data": "SQL: `DELETE FROM audit_logs WHERE log_id = [ID from Step 2];`",
+          "expected_result": "The command fails. The database returns an error indicating a lack of permissions or a trigger preventing the deletion. The row must not be deleted."
+        },
+        {
+          "step_number": 6,
+          "action": "Log back in as 'auditor_user' and view the audit log again.",
+          "input_data": "Filter for 'MRN-IMMUTABLE-TEST03'.",
+          "expected_result": "The original log entry from step 1 is still present and is completely unchanged."
+        },
+        {
+          "step_number": 7,
+          "action": "Check system-level or database-specific logs for any alerts related to the tampering attempts.",
+          "input_data": "N/A",
+          "expected_result": "An alert or log entry is found indicating that an unauthorized modification attempt was made on the audit_logs table."
+        }
+      ],
+      "test_data": {
+        "required_data": [
+          "Privileged database administrator credentials.",
+          "Application user accounts: 'clinician_user', 'auditor_user'.",
+          "A test patient record with MRN 'MRN-IMMUTABLE-TEST03'."
+        ],
+        "test_environment": "Staging environment with database-level controls (triggers, permissions) for audit log immutability in place.",
+        "data_cleanup": "Delete the test patient record 'MRN-IMMUTABLE-TEST03'."
+      },
+      "prerequisites": [
+        "The database has been configured with security controls (e.g., restrictive permissions, triggers) to protect the audit log table.",
+        "A method to review database-level or system-level security alerts is available."
+      ],
+      "expected_results": {
+        "primary_result": "Audit log entries cannot be altered or deleted through direct database manipulation by unauthorized processes.",
+        "verification_criteria": [
+          "SQL UPDATE and DELETE commands on the audit log table fail.",
+          "The original audit log entry remains intact and unchanged when viewed from the application.",
+          "Tampering attempts are logged or trigger an alert."
+        ]
+      },
+      "pass_criteria": [
+        "Both the UPDATE and DELETE SQL commands fail with an error.",
+        "The audit log entry is verified to be unchanged after the attempts."
+      ],
+      "fail_criteria": [
+        "The SQL UPDATE or DELETE command succeeds.",
+        "The audit log entry is altered or missing when viewed after the attempt."
+      ],
+      "post_conditions": [
+        "The database connection is closed.",
+        "The original audit log entry remains in the system."
+      ],
+      "compliance_validation": {
+        "regulatory_requirements": [
+          "FDA 21 CFR Part 11.10(e) - Use of secure, computer-generated, time-stamped audit trails that cannot be altered.",
+          "HIPAA 45 CFR 164.312(c)(2) - Mechanism to protect ePHI from improper alteration or destruction."
+        ],
+        "validation_evidence": "Screenshots of the terminal or SQL client showing the attempted UPDATE/DELETE commands and the resulting error messages. A before-and-after screenshot of the audit log from the application UI, proving the entry was not changed."
+      }
+    }
+  ],
+  "summary": {
+    "total_test_cases": 6,
+    "by_type": {
+      "security": 4,
+      "functional": 1,
+      "compliance": 1
+    },
+    "by_priority": {
+      "critical": 6
+    },
+    "by_compliance": {
+      "HIPAA": 6,
+      "ISO 27001": 4,
+      "IEC 62304": 2,
+      "FDA": 2,
+      "ISO 13485": 1
+    }
+  },
+  "generation_timestamp": "2025-09-21T17:54:08.515435",
+  "parameters": {
+    "requirements_count": 1,
+    "test_types": [
+      "functional",
+      "security",
+      "compliance"
+    ],
+    "standards": [
+      "FDA",
+      "HIPAA",
+      "IEC 62304"
+    ],
+    "risk_level": "high"
+  }
+}
